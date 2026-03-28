@@ -47,6 +47,13 @@ def get_credentials():
             
     return creds
 
+def get_calendar_service():
+    """Tạo service kết nối Google Calendar API."""
+    creds = get_credentials()
+    if not creds:
+        return None
+    return build('calendar', 'v3', credentials=creds)
+
 def get_today_events():
     """Truy xuất danh sách sự kiện hôm nay."""
     creds = get_credentials()

@@ -67,6 +67,17 @@ def check_password():
 
 if not check_password(): st.stop()
 
+# --- XÁC THỰC GOOGLE (TOP-LEVEL) ---
+with st.sidebar:
+    st.markdown("### 🔐 Hệ thống Xác thực")
+    try:
+        from core import calendar_api
+        creds = calendar_api.get_credentials()
+        if creds: st.success("✅ Google Calendar: Sẵn sàng")
+    except Exception as e:
+        st.error(f"⚠️ Cần xác thực: {e}")
+        st.stop()
+
 # --- MAIN ---
 st.markdown("<div class='main-header'>🚀 THIẾT LẬP DỰ ÁN MỚI - RECIPE 01</div>", unsafe_allow_html=True)
 

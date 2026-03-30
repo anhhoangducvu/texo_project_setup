@@ -7,7 +7,19 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
-TEXO_CALENDAR_ID = 'c3b53b35d280ce52410261d8d1d443c95955183833c771e6fcabe31d236a026a@group.calendar.google.com'
+
+def get_texo_calendar_id(service):
+    """Tìm ID của lịch có tên 'TEXO'. Nếu không thấy, trả về 'primary' và cảnh báo."""
+    try:
+        calendar_list = service.calendarList().list().execute()
+        for calendar_list_entry in calendar_list.get('items', []):
+            if calendar_list_entry['summary'] == 'TEXO':
+                return calendar_list_entry['id']
+    except Exception as e:
+        st.error(f"⚠️ Lỗi truy xuất danh sách lịch: {e}")
+    
+    st.warning("⚠️ Không tìm thấy lịch 'TEXO', hệ thống sẽ tạm thời sử dụng lịch cá nhân (Primary).")
+    return 'primary'
 
 import streamlit as st
 import json
@@ -66,8 +78,10 @@ def get_today_events():
     start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S+07:00")
     end_of_day = now.replace(hour=23, minute=59, second=59, microsecond=999999).strftime("%Y-%m-%dT%H:%M:%S+07:00")
     
+    calendar_id = get_texo_calendar_id(service)
+    
     events_result = service.events().list(
-        calendarId=TEXO_CALENDAR_ID, 
+        calendarId=calendar_id, 
         timeMin=start_of_day,
         timeMax=end_of_day,
         singleEvents=True,

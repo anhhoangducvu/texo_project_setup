@@ -1,7 +1,7 @@
 import streamlit as st
 import datetime
 from datetime import timedelta
-from core.calendar_api import get_calendar_service
+from core.calendar_api import get_calendar_service, get_texo_calendar_id
 
 # --- CONFIG ---
 st.set_page_config(page_title="TEXO Project Setup", page_icon="🚀", layout="wide")
@@ -9,14 +9,44 @@ st.set_page_config(page_title="TEXO Project Setup", page_icon="🚀", layout="wi
 # --- STYLE PREMIUM ---
 st.markdown("""
 <style>
-    .stApp { background-color: #0A1931 !important; color: #ffffff !important; }
-    h1, h2, h3, h4, h5, h6, p, span, div, li, label, .stMarkdown { color: #ffffff !important; }
-    .main-header { color: #FFD700 !important; font-weight: 800; font-size: 32px; text-align: center; border-bottom: 2px solid #FFD700; padding-bottom: 10px; margin-bottom: 20px; }
-    [data-testid="stSidebar"] { background-color: #050C1A !important; border-right: 1px solid #FFD700; }
-    .stButton>button { background: #152A4A !important; color: #FFD700 !important; border: 1px solid #FFD700 !important; border-radius: 12px; font-weight: bold; height: 3.5em; width: 100%; }
-    .stButton>button:hover { background: #FFD700 !important; color: #0A1931 !important; transform: scale(1.02); transition: 0.2s; }
-    .stSelectbox div[data-baseweb="select"] { background-color: #152A4A !important; color: white !important; }
-    .footer { text-align: center; color: #888; font-size: 12px; margin-top: 50px; }
+    /* --- TỐI ƯU HÓA CSS CHO CẢ 2 CHẾ ĐỘ --- */
+    h1, h2, h3, h4, .main-header { color: #FFD700 !important; }
+    
+    .main-header { 
+        font-weight: 800; 
+        font-size: 32px; 
+        text-align: center; 
+        border-bottom: 2px solid #FFD700; 
+        padding-bottom: 10px; 
+        margin-bottom: 20px; 
+    }
+    
+    [data-testid="stSidebar"] { 
+        border-right: 1px solid rgba(255, 215, 0, 0.2); 
+    }
+
+    .stButton>button { 
+        background: linear-gradient(135deg, #152A4A 0%, #1e3a8a 100%) !important; 
+        color: #FFD700 !important; 
+        border: 1px solid #FFD700 !important; 
+        border-radius: 12px; 
+        font-weight: bold; 
+        height: 3.5em; 
+        width: 100%; 
+    }
+    .stButton>button:hover { 
+        background: #FFD700 !important; 
+        color: #0A1931 !important; 
+        transform: scale(1.02); 
+        transition: 0.2s; 
+    }
+    
+    /* Input field borders for visibility in light mode */
+    .stTextInput div[data-baseweb="input"], .stTextArea div[data-baseweb="textarea"], .stSelectbox div[data-baseweb="select"] {
+        border: 1px solid rgba(255, 215, 0, 0.2) !important;
+    }
+
+    .footer { text-align: center; color: #888; font-size: 12px; margin-top: 50px; border-top: 1px solid rgba(255, 215, 0, 0.1); padding-top: 20px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -48,7 +78,12 @@ with col1:
     center_id = st.text_input("Trung tâm phụ trách (Mã TT):", placeholder="Ví dụ: TT12")
     project_name = st.text_area("Tên dự án đầy đủ:", placeholder="Ví dụ: Công trình Xây dựng Trụ sở...")
     partner = st.text_input("Đối tác / Chủ đầu tư:", placeholder="Ví dụ: Tập đoàn ABC")
-    value = st.text_input("Giá trị hợp đồng (VNĐ):", placeholder="Ví dụ: 5.000.000.000 VNĐ")
+    col_sub1, col_sub2 = st.columns(2)
+    with col_sub1: service_type = st.selectbox("Loại dịch vụ:", ["TVGS", "TVQLDA", "Tư vấn Thầu", "Kiểm định", "Khác"])
+    with col_sub2: value = st.text_input("Giá trị hợp đồng (VNĐ):", placeholder="Ví dụ: 1.500.000.000")
+    
+    project_short = st.text_input("Tên viết ngắn:", placeholder="Ví dụ: Liền kề Từ Vân")
+    location = st.text_input("Vị trí dự án:", placeholder="Ví dụ: Hà Nội")
     
     st.markdown("### ⌚ Tiến độ")
     start_date = st.date_input("Ngày khởi tạo (T+0):", datetime.date.today())
@@ -66,8 +101,8 @@ with col2:
             with st.spinner("Đang kết nối Google Calendar và khởi tạo chuỗi Milestones..."):
                 try:
                     service = get_calendar_service()
-                    
-                    # 1. Milestone Map
+                    calendar_id = get_texo_calendar_id(service)
+                    st.info(f"📍 Đang đồng bộ vào lịch: {calendar_id}")
                     milestones = [
                         (0, "W01", "Chào mừng & Khởi động dự án"),
                         (14, "W02", "Nhắc báo cáo & Thương hiệu"),
@@ -78,20 +113,26 @@ with col2:
                         (84, "W12", "Tổng kết 3 tháng & Định hướng tiếp theo"),
                     ]
                     
-                    desc_template = f"CHI TIẾT HỢP ĐỒNG {project_code}\n" + \
+                    desc_template = f"CHI TIẾT HỢP ĐỒNG [{project_code}]\n" + \
                                    "----------------------------------\n" + \
-                                   f"- Đơn vị phụ trách: {center_id}\n" + \
-                                   f"- Dự án: {project_name}\n" + \
+                                   f"- Mã HĐ: {project_code}\n" + \
+                                   "- Loại: Hợp đồng\n" + \
+                                   f"- Đơn vị: Trung tâm {center_id}\n" + \
+                                   f"- Dịch vụ: {service_type}\n" + \
                                    f"- Đối tác: {partner}\n" + \
-                                   f"- Giá trị: {value}\n" + \
-                                   f"- Tiến độ: {duration_months} Tháng\n" + \
-                                   "- Liên hệ: Bà Lê Phương Ly - Trưởng P.HCTH\n" + \
+                                   f"- Giá trị: {value} VNĐ\n" + \
+                                   f"- Dự án: {project_name}\n" + \
+                                   f"- Tên viết ngắn: {project_short}\n" + \
+                                   f"- Vị trí: {location}\n" + \
+                                   f"- Tiến độ: {duration_months} tháng\n" + \
                                    "----------------------------------"
 
                     # Create Single Events
                     for days, code, title in milestones:
                         event_date = start_date + timedelta(days=days)
-                        event_title = f"{project_code} - [M-{code}] - {title}"
+                        # Standard format: [Mã HĐ] - tt{TT} - [M-WXX] - Title
+                        center_tag = f"tt{center_id}" if "tt" not in center_id.lower() else center_id.lower()
+                        event_title = f"{project_code} - {center_tag} - [M-{code}] - {title}"
                         
                         event = {
                             'summary': event_title,
@@ -99,7 +140,7 @@ with col2:
                             'start': {'date': event_date.isoformat()},
                             'end': {'date': (event_date + timedelta(days=1)).isoformat()},
                         }
-                        service.events().insert(calendarId='primary', body=event).execute()
+                        service.events().insert(calendarId=calendar_id, body=event).execute()
                         st.write(f"✅ Đã tạo: {event_title} ({event_date})")
 
                     # Create Recurring Event (6 months)
@@ -107,7 +148,8 @@ with col2:
                     recur_until = start_date + timedelta(days=duration_months * 30)
                     
                     if recur_start < recur_until:
-                        recur_title = f"{project_code} - [M-6M] - Kiểm duyệt Hồ sơ & Số hóa TEXO-E"
+                        center_tag = f"tt{center_id}" if "tt" not in center_id.lower() else center_id.lower()
+                        recur_title = f"{project_code} - {center_tag} - [M-6M] - Kiểm soát Hồ sơ & Số hóa TEXO-E"
                         rrule = f"RRULE:FREQ=MONTHLY;INTERVAL=6;UNTIL={recur_until.strftime('%Y%m%dT235959Z')}"
                         
                         recurring_event = {
@@ -117,7 +159,7 @@ with col2:
                             'end': {'date': (recur_start + timedelta(days=1)).isoformat(), 'timeZone': 'Asia/Ho_Chi_Minh'},
                             'recurrence': [rrule],
                         }
-                        service.events().insert(calendarId='primary', body=recurring_event).execute()
+                        service.events().insert(calendarId=calendar_id, body=recurring_event).execute()
                         st.write(f"✅ Đã tạo chu kỳ 6 tháng: {recur_title}")
                     
                     st.success("🎉 TẤT CẢ LỊCH ĐÃ ĐƯỢC THIẾT LẬP THÀNH CÔNG!")

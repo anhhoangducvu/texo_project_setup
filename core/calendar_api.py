@@ -60,11 +60,48 @@ def get_credentials():
                     except: pass
             except: pass
 
-    # 3. XÁC THỰC THỦ CÔNG (Nếu các bước trên thất bại)
+    # 🔑 BƯỚC 3: XÁC THỰC THỦ CÔNG (Nếu các bước trên thất bại)
     if not creds or not creds.valid:
-        # Tìm file credentials.json
-        c_paths = [creds_path, os.path.join(base_dir, creds_path)]
-        final_creds_path = next((cp for cp in c_paths if os.path.exists(cp)), None)
+        # Kiểm tra xem có đang chạy online không
+        is_online = False
+        try:
+            # Kiểm tra Host qua st.context hoặc fallback qua môi trường
+            host = getattr(st, "context", None)
+            if host and "localhost" not in st.context.headers.get("host", ""):
+                is_online = True
+            elif os.environ.get("HOSTNAME") and "localhost" not in os.environ.get("HOSTNAME"):
+                is_online = True
+        except: pass
+
+        if is_online:
+            st.warning("🚀 **ANTI KAIZEN: CHẾ ĐỘ ONLINE ĐANG THIẾU BÙA HỘ MỆNH!**")
+            st.markdown("""
+            Anh Vũ ơi, vì hệ thống đang chạy Online nên không thể tự mở trình duyệt được (lỗi redirect localhost mà Anh thấy). 
+            Để xử lý triệt để và **không bao giờ bị hỏi lại**, Anh làm theo các bước này nhé:
+            """)
+            with st.expander("💎 XỬ LÝ TRIỆT ĐỂ LỖI AUTH (CLICK XEM)", expanded=True):
+                st.markdown("""
+                1. **Khởi động lại bản Offline:** Mở Anti trên máy tính của Anh, chạy file `fix_auth.py`.
+                2. **Lấy mã thần kỳ:** Script đó sẽ in ra các dòng mã. Anh hãy copy toàn bộ.
+                3. **Dán vào Secrets:** Lên giao diện Streamlit Cloud, vào **Settings -> Secrets**, dán các dòng mã sau vào đó rồi Save:
+                   - `calendar_token = '...'`
+                   - `google_credentials = '...'` (Chuỗi này lấy từ nội dung file credentials.json)
+                
+                **💡 Lưu ý GitHub:** Anh Vũ **không nên** up file `.json` lên GitHub. Hãy dùng Secrets để bảo mật tuyệt đối ạ!
+                """)
+                st.info("Sau khi dán Secrets, Anh chỉ cần F5 lại trang này là xong ạ! 🌸")
+            st.stop()
+
+        # --- TÌM CREDENTIALS (Sử dụng Secrets hoặc File) ---
+        final_creds_path = None
+        if "google_credentials" in st.secrets:
+            # Tạo file tạm thời từ Secrets nếu cần (Hoặc dùng trực tiếp nếu thư viện hỗ trợ)
+            with open(os.path.join(base_dir, "temp_creds.json"), "w") as f:
+                f.write(st.secrets["google_credentials"])
+            final_creds_path = os.path.join(base_dir, "temp_creds.json")
+        else:
+            c_paths = [creds_path, os.path.join(base_dir, creds_path)]
+            final_creds_path = next((cp for cp in c_paths if os.path.exists(cp)), None)
         
         if final_creds_path:
             flow_key = f"flow_{token_path}"
